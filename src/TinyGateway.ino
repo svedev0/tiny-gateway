@@ -5,7 +5,7 @@
 #include "globals.h"
 #include "modem.h"
 
-WebServer server(80);
+WebServer server(HTTP_PORT);
 String lastError = "";
 
 // Arduino functions ===============================================================
@@ -22,10 +22,12 @@ void setup() {
 	delay(500);
 
 	UsbSerial.println("(i) Initialising WiFi access point...");
-	while (!startWiFiAP())
-	{
+	while (!WiFi.softAP(AP_SSID, AP_PASSWORD)) {
 		UsbSerial.println("(-) Failed to start access point!");
 		delay(500);
+	}
+	while (WiFi.softAPIP().toString() == "0.0.0.0") {
+		delay(100);
 	}
 	UsbSerial.println("(+) WiFi access point created");
 	UsbSerial.println("(i) WiFi IP address: " + WiFi.softAPIP().toString());
@@ -100,12 +102,39 @@ void setup() {
 	String localIp = modem_GetLocalIpAddress();
 	UsbSerial.println("(i) Local IP: " + localIp);
 
-	// Start ESP32 web server
+	// Configure HTTP server
+	server.on("/send-sms", HTTP_POST, []() {
+		if (!requestAuthorized()) {
+			UsbSerial.println(lastError);
+			server.send(401, "text/plain", "Unauthorized\r\n");
+			return;
+		}
+
+		String reqBody = server.arg("plain");
+		String recipient;
+		String message;
+		if (!parseSmsParams(reqBody, recipient, message)) {
+			UsbSerial.println(lastError);
+			server.send(400, "text/plain", "Invalid request\r\n");
+			return;
+		}
+
+		UsbSerial.println("(i) Sending SMS to '" + recipient + "'...");
+		if (sendSms(recipient, message)) {
+			UsbSerial.println("(+) SMS sent successfully");
+			server.send(200, "text/plain", "Request received\r\n");
+		}
+		else {
+			UsbSerial.println(lastError);
+			server.send(400, "text/plain", "Invalid request\r\n");
+		}
+		});
+
+	server.onNotFound([]() {
+		server.send(404, "text/plain", "Not found\r\n");
+		});
+
 	UsbSerial.println("(i) Starting HTTP server...");
-
-	server.on("/send-sms", HTTP_POST, handleSendSms);
-	server.onNotFound(handleNotFound);
-
 	server.begin();
 }
 
@@ -127,13 +156,6 @@ static void powerOnPeripherals() {
 	digitalWrite(MODEM_POWER_PIN, LOW);
 }
 
-// Initialise WiFi access point.
-static bool startWiFiAP() {
-	bool result = WiFi.softAP(AP_SSID, AP_PASSWORD);
-	delay(100);
-	return result;
-}
-
 // Initialise modem.
 static bool bootModem() {
 	ModemSerial.begin(
@@ -147,30 +169,36 @@ static bool bootModem() {
 
 // HTTP server functions ===========================================================
 
-// Handle /send-sms endpoint.
-static void handleSendSms() {
-	String reqBody = server.arg("plain");
-	String recipient;
-	String message;
-	if (!parseSmsParams(reqBody, recipient, message)) {
-		UsbSerial.println(lastError);
-		return;
+// Returns true if request is authorized.
+static bool requestAuthorized() {
+	if (!server.hasHeader("Authorization")) {
+		lastError = "(-) Invalid request, missing authorization header!";
+		return false;
 	}
 
-	UsbSerial.println("(i) Sending SMS to '" + recipient + "'...");
-	if (sendSms(recipient, message)) {
-		UsbSerial.println("(+) SMS sent successfully");
-	}
-	else {
-		UsbSerial.println(lastError);
+	String authHeader = server.header("Authorization");
+	if (authHeader.length() <= 0) {
+		lastError = "(-) Invalid request, authorization header is empty!";
+		return false;
 	}
 
-	server.send(200, "text/plain", "Request received\r\n");
-}
+	if (!authHeader.startsWith("Bearer ")) {
+		lastError = "(-) Invalid request, authorization header is not Bearer!";
+		return false;
+	}
 
-// Handle not found requests.
-static void handleNotFound() {
-	server.send(404, "text/plain", "Not found\r\n");
+	String token = authHeader.substring(7); // Remove "Bearer " prefix
+	if (token.length() <= 0) {
+		lastError = "(-) Invalid request, token is empty!";
+		return false;
+	}
+
+	if (token != HTTP_AUTH_TOKEN) {
+		lastError = "(-) Invalid request, token is invalid!";
+		return false;
+	}
+
+	return true;
 }
 
 // Parse SMS parameters from request body.
