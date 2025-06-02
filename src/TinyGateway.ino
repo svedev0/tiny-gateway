@@ -1,11 +1,11 @@
 #include <array>
 #include <Network.h>
 #include <WiFi.h>
+#include <WebServer.h>
 #include "globals.h"
-#include "httpserver.h"
 #include "modem.h"
 
-HttpServer httpServer(80);
+WebServer server(80);
 String lastError = "";
 
 // Arduino functions ===============================================================
@@ -102,39 +102,16 @@ void setup() {
 
 	// Start ESP32 web server
 	UsbSerial.println("(i) Starting HTTP server...");
-	httpServer.begin();
+
+	server.on("/send-sms", HTTP_POST, handleSendSms);
+	server.onNotFound(handleNotFound);
+
+	server.begin();
 }
 
 void loop() {
 	modem.maintain();
-
-	String reqHeader;
-	String reqBody;
-	if (!httpServer.serve(reqHeader, reqBody, false)) {
-		return;
-	}
-
-	if (!reqHeader.startsWith("POST /send-sms")) {
-		UsbSerial.println("(-) Invalid URL requested!");
-		return;
-	}
-
-	String recipient;
-	String message;
-	if (!parseSmsParams(reqBody, recipient, message)) {
-		UsbSerial.println(lastError);
-		return;
-	}
-
-	String msgLen = String(message.length());
-	UsbSerial.println("(i) Sending SMS (length: " + msgLen + ") to '" + recipient + "'...");
-
-	if (sendSms(recipient, message)) {
-		UsbSerial.println("(+) SMS sent successfully");
-	}
-	else {
-		UsbSerial.println(lastError);
-	}
+	server.handleClient();
 }
 
 // Init functions ==================================================================
@@ -170,6 +147,33 @@ static bool bootModem() {
 
 // HTTP server functions ===========================================================
 
+// Handle /send-sms endpoint.
+static void handleSendSms() {
+	String reqBody = server.arg("plain");
+	String recipient;
+	String message;
+	if (!parseSmsParams(reqBody, recipient, message)) {
+		UsbSerial.println(lastError);
+		return;
+	}
+
+	UsbSerial.println("(i) Sending SMS to '" + recipient + "'...");
+	if (sendSms(recipient, message)) {
+		UsbSerial.println("(+) SMS sent successfully");
+	}
+	else {
+		UsbSerial.println(lastError);
+	}
+
+	server.send(200, "text/plain", "Request received\r\n");
+}
+
+// Handle not found requests.
+static void handleNotFound() {
+	server.send(404, "text/plain", "Not found\r\n");
+}
+
+// Parse SMS parameters from request body.
 static bool parseSmsParams(const String& reqBody, String& recipient, String& message) {
 	recipient = String();
 	message = String();
@@ -195,6 +199,7 @@ static bool parseSmsParams(const String& reqBody, String& recipient, String& mes
 	return true;
 }
 
+// Send SMS using modem.
 static bool sendSms(const String& recipient, const String& message) {
 	if (recipient.length() <= 0) {
 		lastError = "(-) Invalid request, recipient is empty!";
