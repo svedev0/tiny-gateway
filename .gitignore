@@ -1,5 +1,7 @@
 .vs/
 __vm/
+vendor/
+
 *.sln
 *.vcxproj
 *.vcxproj.filters
