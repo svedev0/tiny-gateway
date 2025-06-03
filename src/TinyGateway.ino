@@ -1,10 +1,9 @@
-#include <array>
-#include <Network.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include "globals.h"
 #include "modem.h"
 
+SIM7000G modem(ModemSerial);
 WebServer server(HTTP_PORT);
 String lastError = "";
 
@@ -40,66 +39,66 @@ void setup() {
 	delay(500);
 
 	// Read modem information
-	String manufacturer = modem_GetHardwareManufacturer();
+	String manufacturer = modem.getHardwareManufacturer();
 	UsbSerial.println("(i) Modem manufacturer: " + manufacturer);
 
-	String model = modem_GetHardwareModel();
+	String model = modem.getHardwareModel();
 	UsbSerial.println("(i) Modem model: " + model);
 
-	String fwVersion = modem_GetFirmwareVersion();
+	String fwVersion = modem.getFirmwareVersion();
 	UsbSerial.println("(i) Modem firmware version: " + fwVersion);
 
 	// Configure modem
 	UsbSerial.println("(i) Setting network mode...");
-	if (!modem_SetNetworkMode(38, false)) {
+	if (!modem.setNetworkMode(38, false)) {
 		UsbSerial.println("(-) Failed to set network mode!");
 	}
 
 	UsbSerial.println("(i) Setting radio mode...");
-	if (!modem_SetRadioMode(1, false)) {
+	if (!modem.setRadioMode(1, false)) {
 		UsbSerial.println("(-) Failed to set radio mode!");
 	}
 
 	UsbSerial.println("(i) Setting PDP parameters...");
-	if (!modem_SetPdpParams()) {
+	if (!modem.setPDPParams()) {
 		UsbSerial.println("(-) Failed to set PDP parameters!");
 	}
 
 	UsbSerial.println("(i) Setting equipment functionality mode...");
-	if (!modem_SetUeFunctionality(1)) {
+	if (!modem.setUEFunctionality(1)) {
 		UsbSerial.println("(-) Failed to set equipment functionality mode!");
 	}
 
 	UsbSerial.println("(i) Unlocking SIM PIN...");
-	if (!modem_UnlockSimPin()) {
+	if (!modem.unlockSIM()) {
 		UsbSerial.println("(-) Failed to unlock SIM PIN!");
 	}
 
 	UsbSerial.println("(i) Connecting to network...");
-	if (!modem_ConnectToNetwork(10000UL)) {
+	if (!modem.connectToNetwork(10000UL)) {
 		UsbSerial.println("(-) Failed to validate network!");
 	}
 
 	// Read network information
-	String imei = modem_GetImei();
+	String imei = modem.getIMEI();
 	UsbSerial.println("(i) IMEI: " + imei);
 
-	String imsi = modem_GetImsi();
+	String imsi = modem.getIMSI();
 	UsbSerial.println("(i) IMSI: " + imsi);
 
-	String phoneNum = modem_GetPhoneNumber();
+	String phoneNum = modem.getPhoneNumber();
 	UsbSerial.println("(i) Phone number: " + phoneNum);
 
-	String netOp = modem_GetNetworkOperator();
+	String netOp = modem.getNetworkOperator();
 	UsbSerial.println("(i) Operator: " + netOp);
 
-	String netSigQual = modem_GetNetworkSignalQuality();
+	String netSigQual = modem.getNetworkSignalQuality();
 	UsbSerial.println("(i) Signal quality: " + netSigQual);
 
-	String netConnType = modem_GetNetworkConnectionType();
+	String netConnType = modem.getNetworkConnectionType();
 	UsbSerial.println("(i) Connection type: " + netConnType);
 
-	String localIp = modem_GetLocalIpAddress();
+	String localIp = modem.getLocalIpAddress();
 	UsbSerial.println("(i) Local IP: " + localIp);
 
 	// Configure HTTP server
@@ -120,12 +119,12 @@ void setup() {
 		}
 
 		UsbSerial.println("(i) Sending SMS to '" + recipient + "'...");
-		if (sendSms(recipient, message)) {
+		if (modem.sendSMS(recipient, message)) {
 			UsbSerial.println("(+) SMS sent successfully");
 			server.send(200, "text/plain", "Request received\r\n");
 		}
 		else {
-			UsbSerial.println(lastError);
+			UsbSerial.println("(-) Failed to send SMS!");
 			server.send(400, "text/plain", "Invalid request\r\n");
 		}
 		});
@@ -225,54 +224,4 @@ static bool parseSmsParams(const String& reqBody, String& recipient, String& mes
 	recipient = reqBody.substring(10, lineEnd);
 	message = reqBody.substring(lineEnd + 1);
 	return true;
-}
-
-// Send SMS using modem.
-static bool sendSms(const String& recipient, const String& message) {
-	if (recipient.length() <= 0) {
-		lastError = "(-) Invalid request, recipient is empty!";
-		return false;
-	}
-
-	if (message.length() <= 0) {
-		lastError = "(-) Invalid request, message is empty!";
-		return false;
-	}
-
-	if (!modem.sendSMS(recipient, message)) {
-		lastError = "(-) Failed to send SMS!";
-		return false;
-	}
-
-	return true;
-}
-
-// Utility functions ===============================================================
-
-// Split string on char and get value at index.
-static String getValue(const String& data, const char separator, const int index) {
-	int found = 0;
-	int strIndex[] = { 0, -1 };
-	int maxIndex = data.length() - 1;
-
-	for (int i = 0; i <= maxIndex && found <= index; i++) {
-		if (data.charAt(i) == separator || i == maxIndex) {
-			found++;
-			strIndex[0] = strIndex[1] + 1;
-
-			if (i == maxIndex) {
-				strIndex[1] = i + 1;
-			}
-			else {
-				strIndex[1] = i;
-			}
-		}
-	}
-
-	if (found > index) {
-		return data.substring(strIndex[0], strIndex[1]);
-	}
-	else {
-		return String();
-	}
 }

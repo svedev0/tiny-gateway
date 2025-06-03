@@ -1,21 +1,30 @@
 #include "globals.h"
 #include "modem.h"
 
-String modem_GetHardwareManufacturer() {
+bool SIM7000G::restart() {
+	return modem.restart();
+}
+
+void SIM7000G::maintain() {
+	modem.maintain();
+}
+
+
+String SIM7000G::getHardwareManufacturer() {
 	return modem.getModemManufacturer(); // AT+CGMI
 }
 
-String modem_GetHardwareModel() {
+String SIM7000G::getHardwareModel() {
 	return modem.getModemModel(); // AT+CGMM
 }
 
-String modem_GetFirmwareVersion() {
+String SIM7000G::getFirmwareVersion() {
 	String fwVersion = modem.getModemRevision(); // AT+CGMR
 	fwVersion.replace("Revision:", "");
 	return fwVersion;
 }
 
-bool modem_SetNetworkMode(const uint8_t mode, const bool retry) {
+bool SIM7000G::setNetworkMode(const uint8_t mode, const bool retry) {
 	if (!retry) {
 		return modem.setNetworkMode(mode); // AT+CNMP
 	}
@@ -30,7 +39,7 @@ bool modem_SetNetworkMode(const uint8_t mode, const bool retry) {
 	return true;
 }
 
-bool modem_SetRadioMode(const uint8_t mode, const bool retry) {
+bool SIM7000G::setRadioMode(const uint8_t mode, const bool retry) {
 	if (!retry) {
 		return modem.setPreferredMode(mode); // AT+CMNB
 	}
@@ -45,10 +54,10 @@ bool modem_SetRadioMode(const uint8_t mode, const bool retry) {
 	return true;
 }
 
-bool modem_SetPdpParams() {
+bool SIM7000G::setPDPParams() {
 	// Get defined PDP contexts
 	ModemSerial.println("AT+CGACT?");
-	delay(300);
+	delay(200);
 
 	if (!ModemSerial.available()) {
 		return false;
@@ -105,7 +114,7 @@ bool modem_SetPdpParams() {
 	return true;
 }
 
-bool modem_SetUeFunctionality(const uint8_t mode) {
+bool SIM7000G::setUEFunctionality(const uint8_t mode) {
 	ModemSerial.println("AT+CFUN=" + String(mode));
 	delay(1000);
 
@@ -122,7 +131,7 @@ bool modem_SetUeFunctionality(const uint8_t mode) {
 }
 
 
-bool modem_UnlockSimPin() {
+bool SIM7000G::unlockSIM() {
 	if (modem.getSimStatus() != 3) { // AT+CPIN
 		return true; // SIM is unlocked
 	}
@@ -134,7 +143,7 @@ bool modem_UnlockSimPin() {
 #endif
 }
 
-bool modem_ConnectToNetwork(const uint32_t timeoutMs) {
+bool SIM7000G::connectToNetwork(const uint32_t timeoutMs) {
 	if (!modem.waitForNetwork(timeoutMs)) { // AT+CGREG or AT+CEREG
 		return false;
 	}
@@ -145,15 +154,15 @@ bool modem_ConnectToNetwork(const uint32_t timeoutMs) {
 }
 
 
-String modem_GetImei() {
+String SIM7000G::getIMEI() {
 	return modem.getIMEI(); // AT+CGSN
 }
 
-String modem_GetImsi() {
+String SIM7000G::getIMSI() {
 	return modem.getIMSI(); // AT+CIMI
 }
 
-String modem_GetPhoneNumber() {
+String SIM7000G::getPhoneNumber() {
 	ModemSerial.println("AT+CNUM");
 	delay(1000);
 
@@ -176,16 +185,16 @@ String modem_GetPhoneNumber() {
 }
 
 
-String modem_GetNetworkOperator() {
+String SIM7000G::getNetworkOperator() {
 	return modem.getOperator(); // AT+COPS
 }
 
-String modem_GetNetworkSignalQuality() {
+String SIM7000G::getNetworkSignalQuality() {
 	int16_t sq = modem.getSignalQuality(); // AT+CSQ
 	return String("-" + String(sq) + " dBa");
 }
 
-String modem_GetNetworkConnectionType() {
+String SIM7000G::getNetworkConnectionType() {
 	ModemSerial.println("AT+CPSI?");
 	delay(800);
 
@@ -201,6 +210,15 @@ String modem_GetNetworkConnectionType() {
 	return result.substring(0, result.indexOf(','));
 }
 
-String modem_GetLocalIpAddress() {
+String SIM7000G::getLocalIpAddress() {
 	return modem.getLocalIP(); // AT+CIFSR
+}
+
+
+bool SIM7000G::sendSMS(const String recipient, const String message) {
+	if (recipient.length() <= 0 || message.length() <= 0) {
+		return false;
+	}
+
+	return modem.sendSMS(recipient, message); // AT+CMGS
 }

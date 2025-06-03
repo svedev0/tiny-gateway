@@ -7,9 +7,6 @@
 #include "WProgram.h"
 #endif // defined(ARDUINO) && ARDUINO >= 100
 
-// Define modem model
-#define TINY_GSM_MODEM_SIM7000SSL
-
 // GPIO map
 #define LED_PIN           12
 #define MODEM_POWER_PIN   4
@@ -42,9 +39,5 @@
 // HTTP server
 #define HTTP_PORT       80
 #define HTTP_AUTH_TOKEN (char*)"1234567890abcdef"
-
-#include <TinyGsmClient.h>
-
-extern TinyGsmSim7000SSL modem;
 
 #endif // _GLOBALS_h

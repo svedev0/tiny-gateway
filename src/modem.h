@@ -7,69 +7,92 @@
 #include "WProgram.h"
 #endif // defined(ARDUINO) && ARDUINO >= 100
 
-// Get modem manufacturer.
-String modem_GetHardwareManufacturer();
+#define TINY_GSM_MODEM_SIM7000SSL // Define modem model
 
-// Get modem model.
-String modem_GetHardwareModel();
+#include <TinyGsmClient.h>
 
-// Get modem firmware version.
-String modem_GetFirmwareVersion();
+class SIM7000G {
+private:
+	TinyGsmSim7000SSL modem;
 
+public:
+	SIM7000G(Stream& stream) : modem(stream) {}
 
-// Set preferred modem network mode. Returns true if successful.
-// 2 = Automatic
-// 13 = GSM only
-// 38 = LTE only
-// 51 = GSM and LTE only
-bool modem_SetNetworkMode(uint8_t mode, bool retry);
+	// Restart modem.
+	bool restart();
 
-// Set preferred modem radio mode. Returns true if successful.
-// 1 = CAT-M
-// 2 = NB-Iot
-// 3 = CAT-M and NB-IoT
-bool modem_SetRadioMode(uint8_t mode, bool retry);
-
-// Set PDP (packet data protocol) context parameters. Returns true if successful.
-bool modem_SetPdpParams();
-
-// Set the UE (user equipment) RF curcuit RX/TX power mode (circuit functionality).
-// 0 = Minimum functionality
-// 1 = Full functionality (Default)
-// 4 = Disable both RX and TX RF circuits
-// 5 = Factory test mode
-// 6 = Reset
-// 7 = Offline Mode
-bool modem_SetUeFunctionality(uint8_t mode);
+	// Maintain modem connection.
+	void maintain();
 
 
-// Unlock SIM PIN. Returns true if successful or if SIM is already unlocked.
-bool modem_UnlockSimPin();
+	// Get modem manufacturer.
+	String getHardwareManufacturer();
 
-// Wait for a network connection. Returns true if connected within the timeout.
-bool modem_ConnectToNetwork(uint32_t timeoutMs);
+	// Get modem model.
+	String getHardwareModel();
 
-
-// Get modem IMEI.
-String modem_GetImei();
-
-// Get SIM IMSI.
-String modem_GetImsi();
-
-// Get SIM phone number.
-String modem_GetPhoneNumber();
+	// Get modem firmware version.
+	String getFirmwareVersion();
 
 
-// Get network operator.
-String modem_GetNetworkOperator();
+	// Set preferred modem network mode. Returns true if successful.
+	// 2 = Automatic
+	// 13 = GSM only
+	// 38 = LTE only
+	// 51 = GSM and LTE only
+	bool setNetworkMode(uint8_t mode, bool retry);
 
-// Get network signal quality.
-String modem_GetNetworkSignalQuality();
+	// Set preferred modem radio mode. Returns true if successful.
+	// 1 = CAT-M
+	// 2 = NB-Iot
+	// 3 = CAT-M and NB-IoT
+	bool setRadioMode(uint8_t mode, bool retry);
 
-// Get network connection type.
-String modem_GetNetworkConnectionType();
+	// Set PDP (packet data protocol) context parameters. Returns true if successful.
+	bool setPDPParams();
 
-// Get network local IP address.
-String modem_GetLocalIpAddress();
+	// Set the UE (user equipment) RF curcuit RX/TX power mode (circuit functionality).
+	// 0 = Minimum functionality
+	// 1 = Full functionality (Default)
+	// 4 = Disable both RX and TX RF circuits
+	// 5 = Factory test mode
+	// 6 = Reset
+	// 7 = Offline Mode
+	bool setUEFunctionality(uint8_t mode);
+
+
+	// Unlock SIM PIN. Returns true if successful or if SIM is already unlocked.
+	bool unlockSIM();
+
+	// Wait for a network connection. Returns true if connected within the timeout.
+	bool connectToNetwork(uint32_t timeoutMs);
+
+
+	// Get modem IMEI.
+	String getIMEI();
+
+	// Get SIM IMSI.
+	String getIMSI();
+
+	// Get SIM phone number.
+	String getPhoneNumber();
+
+
+	// Get network operator.
+	String getNetworkOperator();
+
+	// Get network signal quality.
+	String getNetworkSignalQuality();
+
+	// Get network connection type.
+	String getNetworkConnectionType();
+
+	// Get network local IP address.
+	String getLocalIpAddress();
+
+
+	// Send an SMS.
+	bool sendSMS(String recipient, String message);
+};
 
 #endif // _MODEM_h
