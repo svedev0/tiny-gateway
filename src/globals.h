@@ -39,6 +39,10 @@
 #define AP_SSID     (char*)"SIM7000G AP"
 #define AP_PASSWORD (char*)"aptest123"
 
+// HTTP server
+#define HTTP_PORT       80
+#define HTTP_AUTH_TOKEN (char*)"1234567890abcdef"
+
 #include <TinyGsmClient.h>
 
 extern TinyGsmSim7000SSL modem;
