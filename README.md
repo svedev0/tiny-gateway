@@ -16,10 +16,13 @@ ESP32 at `192.168.4.1`.
 **Send SMS**
 ```
 POST /send-sms
+Authorization: Bearer <HTTP_AUTH_TOKEN>
 Content-Type: text/plain
 
-Recipient=+123456789
-Test message
+{
+	"recipient": "<PHONE_NUMBER>",
+	"message": "<MESSAGE>"
+}
 ```
 
 Or in Bash using curl:
@@ -28,7 +31,7 @@ curl http://192.168.4.1/send-sms \
 	-X POST \
 	-H 'Authorization: Bearer <HTTP_AUTH_TOKEN>' \
 	-H 'Content-Type: text/plain' \
-	--data $'Recipient=<PHONE_NUMBER>\n<MESSAGE>'
+	--data '{"recipient":"<PHONE_NUMBER>","message":"<MESSAGE>"}'
 ```
 
 ### Configuration
