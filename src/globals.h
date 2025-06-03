@@ -40,4 +40,10 @@
 #define HTTP_PORT       80
 #define HTTP_AUTH_TOKEN (char*)"mi5aj9rwkdd4x68p"
 
+// Logging
+#define VERBOSE_LOGGING false
+
+// Miscellaneous
+#define I_KNOW_WHAT_I_AM_DOING true
+
 #endif // _GLOBALS_h

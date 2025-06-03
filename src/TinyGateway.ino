@@ -25,85 +25,99 @@ void setup() {
 
 	UsbSerial.println("(i) Initialising WiFi access point...");
 	WiFi.mode(WIFI_AP);
-	while (!WiFi.softAP(AP_SSID, AP_PASSWORD)) {
+	if (!WiFi.softAP(AP_SSID, AP_PASSWORD)) {
 		UsbSerial.println("(-) Failed to start access point!");
-		delay(500);
+		fatalError();
 	}
 	while (WiFi.softAPIP().toString() == "0.0.0.0") {
-		delay(100);
+		delay(50);
 	}
 	UsbSerial.println("(+) WiFi access point created");
-	UsbSerial.println("(i) WiFi IP address: " + WiFi.softAPIP().toString());
 	delay(200);
 
 	UsbSerial.println("(i) Initialising modem...");
 	if (!bootModem()) {
-		UsbSerial.println("(-) Failed to restart modem, attempting to continue without restarting!");
+		UsbSerial.println("(-) Failed to restart modem!");
+		fatalError();
 	}
-	delay(500);
+	delay(800);
 
 	// Read modem hardware information.
-	String manufacturer = modem.getHardwareManufacturer();
-	UsbSerial.println("(i) Modem manufacturer: " + manufacturer);
+	if (VERBOSE_LOGGING) {
+		String manufacturer = modem.getHardwareManufacturer();
+		UsbSerial.println("(i) Modem manufacturer: " + manufacturer);
 
-	String model = modem.getHardwareModel();
-	UsbSerial.println("(i) Modem model: " + model);
+		String model = modem.getHardwareModel();
+		UsbSerial.println("(i) Modem model: " + model);
 
-	String fwVersion = modem.getFirmwareVersion();
-	UsbSerial.println("(i) Modem firmware version: " + fwVersion);
+		String fwVersion = modem.getFirmwareVersion();
+		UsbSerial.println("(i) Modem firmware version: " + fwVersion);
+	}
 
 	// Configure modem.
-	UsbSerial.println("(i) Setting network mode...");
-	if (!modem.setNetworkMode(38, false)) {
-		UsbSerial.println("(-) Failed to set network mode!");
-	}
+	if (!I_KNOW_WHAT_I_AM_DOING) {
+		UsbSerial.println("(i) Setting network mode...");
+		if (!modem.setNetworkMode(38, false)) {
+			UsbSerial.println("(-) Failed to set network mode!");
+			fatalError();
+		}
 
-	UsbSerial.println("(i) Setting radio mode...");
-	if (!modem.setRadioMode(1, false)) {
-		UsbSerial.println("(-) Failed to set radio mode!");
-	}
+		UsbSerial.println("(i) Setting radio mode...");
+		if (!modem.setRadioMode(1, false)) {
+			UsbSerial.println("(-) Failed to set radio mode!");
+			fatalError();
+		}
 
-	UsbSerial.println("(i) Setting PDP parameters...");
-	if (!modem.setPDPParams()) {
-		UsbSerial.println("(-) Failed to set PDP parameters!");
-	}
+		UsbSerial.println("(i) Setting PDP parameters...");
+		if (!modem.setPDPParams()) {
+			UsbSerial.println("(-) Failed to set PDP parameters!");
+			fatalError();
+		}
 
-	UsbSerial.println("(i) Setting equipment functionality mode...");
-	if (!modem.setUEFunctionality(1)) {
-		UsbSerial.println("(-) Failed to set equipment functionality mode!");
+		UsbSerial.println("(i) Setting equipment functionality mode...");
+		if (!modem.setUEFunctionality(1)) {
+			UsbSerial.println("(-) Failed to set equipment functionality mode!");
+			fatalError();
+		}
 	}
 
 	UsbSerial.println("(i) Unlocking SIM PIN...");
 	if (!modem.unlockSIM()) {
 		UsbSerial.println("(-) Failed to unlock SIM PIN!");
+		fatalError();
 	}
 
 	UsbSerial.println("(i) Connecting to network...");
 	if (!modem.connectToNetwork(10000UL)) {
 		UsbSerial.println("(-) Failed to validate network!");
+		fatalError();
 	}
 
+	UsbSerial.println("(+) Modem ready");
+
 	// Read modem network information.
-	String imei = modem.getIMEI();
-	UsbSerial.println("(i) IMEI: " + imei);
+	if (VERBOSE_LOGGING) {
+		String imei = modem.getIMEI();
+		UsbSerial.println("(i) IMEI: " + imei);
 
-	String imsi = modem.getIMSI();
-	UsbSerial.println("(i) IMSI: " + imsi);
+		String imsi = modem.getIMSI();
+		UsbSerial.println("(i) IMSI: " + imsi);
 
-	String phoneNum = modem.getPhoneNumber();
-	UsbSerial.println("(i) Phone number: " + phoneNum);
+		String phoneNum = modem.getPhoneNumber();
+		UsbSerial.println("(i) Phone number: " + phoneNum);
 
-	String netOp = modem.getNetworkOperator();
-	UsbSerial.println("(i) Operator: " + netOp);
+		String netOp = modem.getNetworkOperator();
+		UsbSerial.println("(i) Operator: " + netOp);
 
-	String netSigQual = modem.getNetworkSignalQuality();
-	UsbSerial.println("(i) Signal quality: " + netSigQual);
+		String netSigQual = modem.getNetworkSignalQuality();
+		UsbSerial.println("(i) Signal quality: " + netSigQual);
 
-	String netConnType = modem.getNetworkConnectionType();
-	UsbSerial.println("(i) Connection type: " + netConnType);
+		String netConnType = modem.getNetworkConnectionType();
+		UsbSerial.println("(i) Connection type: " + netConnType);
 
-	String localIp = modem.getLocalIpAddress();
-	UsbSerial.println("(i) Local IP: " + localIp);
+		String localIp = modem.getLocalIpAddress();
+		UsbSerial.println("(i) Local IP: " + localIp);
+	}
 
 	// Configure HTTP server.
 	server.on("/send-sms", []() {
@@ -147,6 +161,7 @@ void setup() {
 
 	UsbSerial.println("(i) Starting HTTP server...");
 	server.begin();
+	UsbSerial.println("(+) HTTP server ready");
 }
 
 void loop() {
@@ -174,6 +189,15 @@ static bool bootModem() {
 		MODEM_UART_CFG,
 		MODEM_UART_RX_PIN,
 		MODEM_UART_TX_PIN);
+
+	while (!ModemSerial) {
+		delay(5);
+	}
+
+	if (I_KNOW_WHAT_I_AM_DOING) {
+		return true;
+	}
+
 	delay(500);
 	return modem.restart();
 }
@@ -222,4 +246,14 @@ static bool parseRequestBody(const String& reqBody, JsonDocument& doc) {
 	}
 
 	return true;
+}
+
+// Utility functions ===============================================================
+
+// Print fatal error and halt execution.
+static void fatalError() {
+	UsbSerial.println("(-) Fatal error, please restart device!");
+	while (true) {
+		delay(1000);
+	}
 }
