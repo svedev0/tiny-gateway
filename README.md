@@ -24,7 +24,11 @@ Test message
 
 Or in Bash using curl:
 ```
-curl http://192.168.4.1/send-sms -X POST -H 'Content-Type: text/plain' --data $'Recipient=+123456789\nTest message'
+curl http://192.168.4.1/send-sms \
+	-X POST \
+	-H 'Authorization: Bearer <HTTP_AUTH_TOKEN>' \
+	-H 'Content-Type: text/plain' \
+	--data $'Recipient=<PHONE_NUMBER>\n<MESSAGE>'
 ```
 
 ### Configuration
@@ -34,9 +38,8 @@ In the `globals.h` file, update this line with your APN:
 #define APN (char*)"example-apn.com"
 ```
 
-Also in the `globals.h` file, update these lines to configure the WiFi access
-point credentials:
+Optionally, the WiFi access point credentials can also be configured:
 ```cpp
-#define AP_SSID     (char*)"SIM7000G AP"
-#define AP_PASSWORD (char*)"aptest123"
+#define AP_SSID     (char*)"TinyGateway"
+#define AP_PASSWORD (char*)"hl54b6xwp2n6rxey"
 ```

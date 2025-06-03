@@ -7,9 +7,6 @@
 #include "WProgram.h"
 #endif // defined(ARDUINO) && ARDUINO >= 100
 
-// Define modem model
-#define TINY_GSM_MODEM_SIM7000SSL
-
 // GPIO map
 #define LED_PIN           12
 #define MODEM_POWER_PIN   4
@@ -36,15 +33,11 @@
 #define APN (char*)"example-apn.com"
 
 // WiFi access point
-#define AP_SSID     (char*)"SIM7000G AP"
-#define AP_PASSWORD (char*)"aptest123"
+#define AP_SSID     (char*)"TinyGateway"
+#define AP_PASSWORD (char*)"hl54b6xwp2n6rxey"
 
 // HTTP server
 #define HTTP_PORT       80
-#define HTTP_AUTH_TOKEN (char*)"1234567890abcdef"
-
-#include <TinyGsmClient.h>
-
-extern TinyGsmSim7000SSL modem;
+#define HTTP_AUTH_TOKEN (char*)"mi5aj9rwkdd4x68p"
 
 #endif // _GLOBALS_h
