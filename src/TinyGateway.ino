@@ -1,5 +1,6 @@
-#include <WiFi.h>
+#include <ArduinoJson.h>
 #include <WebServer.h>
+#include <WiFi.h>
 #include "globals.h"
 #include "modem.h"
 
@@ -102,35 +103,43 @@ void setup() {
 	UsbSerial.println("(i) Local IP: " + localIp);
 
 	// Configure HTTP server.
-	server.on("/send-sms", HTTP_POST, []() {
+	server.on("/send-sms", []() {
+		if (server.method() != HTTP_POST) {
+			UsbSerial.println("(-) Invalid request, method is not POST!");
+			server.send(405, "text/plain", "405 Method Not Allowed\r\n");
+			return;
+		}
+
 		if (!requestAuthorized()) {
 			UsbSerial.println(lastError);
-			server.send(401, "text/plain", "Unauthorized\r\n");
+			server.send(401, "text/plain", "401 Unauthorized\r\n");
 			return;
 		}
 
 		String reqBody = server.arg("plain");
-		String recipient;
-		String message;
-		if (!parseSmsParams(reqBody, recipient, message)) {
+		JsonDocument json;
+		if (!parseRequestBody(reqBody, json)) {
 			UsbSerial.println(lastError);
-			server.send(400, "text/plain", "Invalid request\r\n");
+			server.send(400, "text/plain", "400 Bad Request\r\n");
 			return;
 		}
 
+		String recipient = json["recipient"];
+		String message = json["message"];
 		UsbSerial.println("(i) Sending SMS to '" + recipient + "'...");
+
 		if (modem.sendSMS(recipient, message)) {
 			UsbSerial.println("(+) SMS sent successfully");
-			server.send(200, "text/plain", "Request received\r\n");
+			server.send(200, "text/plain", "200 OK\r\n");
 		}
 		else {
 			UsbSerial.println("(-) Failed to send SMS!");
-			server.send(400, "text/plain", "Invalid request\r\n");
+			server.send(400, "text/plain", "400 Bad Request\r\n");
 		}
 		});
 
 	server.onNotFound([]() {
-		server.send(404, "text/plain", "Not found\r\n");
+		server.send(404, "text/plain", "404 Not Found\r\n");
 		});
 
 	UsbSerial.println("(i) Starting HTTP server...");
@@ -200,28 +209,14 @@ static bool requestAuthorized() {
 	return true;
 }
 
-// Parse SMS parameters from request body.
-static bool parseSmsParams(const String& reqBody, String& recipient, String& message) {
-	recipient = String();
-	message = String();
-
-	if (reqBody.length() <= 0) {
-		lastError = "(-) Invalid request, body is empty!";
+// Deserialize JSON request body.
+static bool parseRequestBody(const String& reqBody, JsonDocument& doc) {
+	DeserializationError error = deserializeJson(doc, reqBody);
+	if (error) {
+		lastError = "(-) Failed to parse request body: " + String(error.c_str());
+		doc = JsonDocument();
 		return false;
 	}
 
-	if (!reqBody.startsWith("Recipient=")) {
-		lastError = "(-) Invalid request, recipient key missing!";
-		return false;
-	}
-
-	int lineEnd = reqBody.indexOf('\n');
-	if (lineEnd < 0) {
-		lastError = "(-) Invalid request, no newline found!";
-		return false;
-	}
-
-	recipient = reqBody.substring(10, lineEnd);
-	message = reqBody.substring(lineEnd + 1);
 	return true;
 }
