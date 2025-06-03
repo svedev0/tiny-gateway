@@ -15,7 +15,7 @@ void setup() {
 	UsbSerial.println("");
 	UsbSerial.println("(i) Booting...");
 
-	// Initialise components
+	// Initialise components.
 	UsbSerial.println("(i) Powering on peripherals...");
 	powerOnPeripherals();
 	delay(500);
@@ -38,7 +38,7 @@ void setup() {
 	}
 	delay(500);
 
-	// Read modem information
+	// Read modem hardware information.
 	String manufacturer = modem.getHardwareManufacturer();
 	UsbSerial.println("(i) Modem manufacturer: " + manufacturer);
 
@@ -48,7 +48,7 @@ void setup() {
 	String fwVersion = modem.getFirmwareVersion();
 	UsbSerial.println("(i) Modem firmware version: " + fwVersion);
 
-	// Configure modem
+	// Configure modem.
 	UsbSerial.println("(i) Setting network mode...");
 	if (!modem.setNetworkMode(38, false)) {
 		UsbSerial.println("(-) Failed to set network mode!");
@@ -79,7 +79,7 @@ void setup() {
 		UsbSerial.println("(-) Failed to validate network!");
 	}
 
-	// Read network information
+	// Read modem network information.
 	String imei = modem.getIMEI();
 	UsbSerial.println("(i) IMEI: " + imei);
 
@@ -101,7 +101,7 @@ void setup() {
 	String localIp = modem.getLocalIpAddress();
 	UsbSerial.println("(i) Local IP: " + localIp);
 
-	// Configure HTTP server
+	// Configure HTTP server.
 	server.on("/send-sms", HTTP_POST, []() {
 		if (!requestAuthorized()) {
 			UsbSerial.println(lastError);
