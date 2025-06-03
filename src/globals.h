@@ -43,7 +43,9 @@
 // Logging
 #define VERBOSE_LOGGING false
 
-// Miscellaneous
+// If you do not have complete understanding of the code in this project, do not
+// change this value. Setting this to false will skip important configuration steps.
+// This should only be used by advanced users for testing purposes.
 #define I_KNOW_WHAT_I_AM_DOING true
 
 #endif // _GLOBALS_h
