@@ -33,11 +33,11 @@
 #define APN (char*)"example-apn.com"
 
 // WiFi access point
-#define AP_SSID     (char*)"SIM7000G AP"
-#define AP_PASSWORD (char*)"aptest123"
+#define AP_SSID     (char*)"TinyGateway"
+#define AP_PASSWORD (char*)"hl54b6xwp2n6rxey"
 
 // HTTP server
 #define HTTP_PORT       80
-#define HTTP_AUTH_TOKEN (char*)"1234567890abcdef"
+#define HTTP_AUTH_TOKEN (char*)"mi5aj9rwkdd4x68p"
 
 #endif // _GLOBALS_h
