@@ -12,7 +12,9 @@ String lastError = "";
 
 void setup() {
 	UsbSerial.begin(USB_UART_BAUD);
-	delay(1000);
+	while (!UsbSerial) {
+		delay(5);
+	}
 	UsbSerial.println("");
 	UsbSerial.println("(i) Booting...");
 
@@ -22,6 +24,7 @@ void setup() {
 	delay(500);
 
 	UsbSerial.println("(i) Initialising WiFi access point...");
+	WiFi.mode(WIFI_AP);
 	while (!WiFi.softAP(AP_SSID, AP_PASSWORD)) {
 		UsbSerial.println("(-) Failed to start access point!");
 		delay(500);
