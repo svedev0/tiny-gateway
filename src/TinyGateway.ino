@@ -73,12 +73,6 @@ void setup() {
 			UsbSerial.println("(-) Failed to set PDP parameters!");
 			fatalError();
 		}
-
-		UsbSerial.println("(i) Setting equipment functionality mode...");
-		if (!modem.setUEFunctionality(1)) {
-			UsbSerial.println("(-) Failed to set equipment functionality mode!");
-			fatalError();
-		}
 	}
 
 	UsbSerial.println("(i) Unlocking SIM PIN...");
@@ -103,6 +97,9 @@ void setup() {
 		String imsi = modem.getIMSI();
 		UsbSerial.println("(i) IMSI: " + imsi);
 
+		String iccid = modem.getICCID();
+		UsbSerial.println("(i) ICCID: " + iccid);
+
 		String phoneNum = modem.getPhoneNumber();
 		UsbSerial.println("(i) Phone number: " + phoneNum);
 
@@ -120,46 +117,9 @@ void setup() {
 	}
 
 	// Configure HTTP server.
-	server.on("/send-sms", []() {
-		if (server.method() != HTTP_POST) {
-			UsbSerial.println("(-) Invalid request, method is not POST!");
-			server.send(405, "text/plain", "405 Method Not Allowed\r\n");
-			return;
-		}
-
-		if (!requestAuthorized()) {
-			UsbSerial.println(lastError);
-			server.send(401, "text/plain", "401 Unauthorized\r\n");
-			return;
-		}
-
-		String reqBody = server.arg("plain");
-		JsonDocument json;
-		if (!parseRequestBody(reqBody, json)) {
-			UsbSerial.println(lastError);
-			server.send(400, "text/plain", "400 Bad Request\r\n");
-			return;
-		}
-
-		String recipient = json["recipient"];
-		String message = json["message"];
-		UsbSerial.println("(i) Sending SMS to '" + recipient + "'...");
-
-		if (modem.sendSMS(recipient, message)) {
-			UsbSerial.println("(+) SMS sent successfully");
-			server.send(200, "text/plain", "200 OK\r\n");
-		}
-		else {
-			UsbSerial.println("(-) Failed to send SMS!");
-			server.send(400, "text/plain", "400 Bad Request\r\n");
-		}
-		});
-
-	server.onNotFound([]() {
-		server.send(404, "text/plain", "404 Not Found\r\n");
-		});
-
 	UsbSerial.println("(i) Starting HTTP server...");
+	server.on("/send-sms", handleSendSMS);
+	server.onNotFound(handleNotFound);
 	server.begin();
 	UsbSerial.println("(+) HTTP server ready");
 }
@@ -246,6 +206,47 @@ static bool parseRequestBody(const String& reqBody, JsonDocument& doc) {
 	}
 
 	return true;
+}
+
+// Handle send SMS requests.
+static void handleSendSMS() {
+	if (server.method() != HTTP_POST) {
+		UsbSerial.println("(-) Invalid request, method is not POST!");
+		server.send(405, "text/plain", "405 Method Not Allowed\r\n");
+		return;
+	}
+
+	if (!requestAuthorized()) {
+		UsbSerial.println(lastError);
+		server.send(401, "text/plain", "401 Unauthorized\r\n");
+		return;
+	}
+
+	String reqBody = server.arg("plain");
+	JsonDocument json;
+	if (!parseRequestBody(reqBody, json)) {
+		UsbSerial.println(lastError);
+		server.send(400, "text/plain", "400 Bad Request\r\n");
+		return;
+	}
+
+	String recipient = json["recipient"];
+	String message = json["message"];
+	UsbSerial.println("(i) Sending SMS to '" + recipient + "'...");
+
+	if (modem.sendSMS(recipient, message)) {
+		UsbSerial.println("(+) SMS sent successfully");
+		server.send(200, "text/plain", "200 OK\r\n");
+	}
+	else {
+		UsbSerial.println("(-) Failed to send SMS!");
+		server.send(400, "text/plain", "400 Bad Request\r\n");
+	}
+}
+
+// Handle not found requests.
+static void handleNotFound() {
+	server.send(404, "text/plain", "404 Not Found\r\n");
 }
 
 // Utility functions ===============================================================
