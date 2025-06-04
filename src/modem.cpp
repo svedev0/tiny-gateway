@@ -5,6 +5,10 @@ bool SIM7000G::restart() {
 	return modem.restart();
 }
 
+bool SIM7000G::ready() {
+	return modem.testAT(); // AT
+}
+
 void SIM7000G::maintain() {
 	modem.maintain();
 }
@@ -33,7 +37,7 @@ bool SIM7000G::setNetworkMode(const uint8_t mode, const bool retry) {
 		if (modem.setNetworkMode(mode)) {
 			break;
 		}
-		delay(500);
+		delay(200);
 	}
 
 	return true;
@@ -48,7 +52,7 @@ bool SIM7000G::setRadioMode(const uint8_t mode, const bool retry) {
 		if (modem.setPreferredMode(mode)) {
 			break;
 		}
-		delay(500);
+		delay(200);
 	}
 
 	return true;
@@ -162,6 +166,10 @@ String SIM7000G::getIMSI() {
 	return modem.getIMSI(); // AT+CIMI
 }
 
+String SIM7000G::getICCID() {
+	return modem.getSimCCID(); // AT+CCID
+}
+
 String SIM7000G::getPhoneNumber() {
 	ModemSerial.println("AT+CNUM");
 	delay(1000);
@@ -176,7 +184,12 @@ String SIM7000G::getPhoneNumber() {
 	result.replace("\"", "");
 	result.replace("+CNUM: ,", "");
 
-	String phoneNum = result.substring(0, result.indexOf(','));
+	int commaIdx = result.indexOf(',');
+	if (commaIdx < 0) {
+		return String();
+	}
+
+	String phoneNum = result.substring(0, commaIdx);
 	if (phoneNum.length() <= 0) {
 		return String();
 	}
@@ -207,7 +220,12 @@ String SIM7000G::getNetworkConnectionType() {
 	result.replace("\n", "");
 	result.replace("+CPSI: ", "");
 
-	return result.substring(0, result.indexOf(','));
+	int commaIdx = result.indexOf(',');
+	if (commaIdx < 0) {
+		return String();
+	}
+
+	return result.substring(0, commaIdx);
 }
 
 String SIM7000G::getLocalIpAddress() {

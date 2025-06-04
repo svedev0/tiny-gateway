@@ -21,6 +21,9 @@ public:
 	// Restart modem.
 	bool restart();
 
+	// Check if modem is responding.
+	bool ready();
+
 	// Maintain modem connection.
 	void maintain();
 
@@ -73,6 +76,9 @@ public:
 
 	// Get SIM IMSI.
 	String getIMSI();
+
+	// Get SIM CCID.
+	String getICCID();
 
 	// Get SIM phone number.
 	String getPhoneNumber();
