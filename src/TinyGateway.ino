@@ -30,7 +30,7 @@ void setup() {
 	digitalWrite(MODEM_POWER_PIN, HIGH);
 	delay(100);
 	digitalWrite(MODEM_POWER_PIN, LOW);
-	delay(500);
+	delay(1000);
 
 	// Start modem serial.
 	ModemSerial.begin(MODEM_UART_BAUD, MODEM_UART_CFG, MODEM_UART_RX_PIN, MODEM_UART_TX_PIN);
@@ -45,7 +45,7 @@ void setup() {
 		if (!modem.restart()) {
 			logFatal("(-) Failed to restart modem!");
 		}
-		delay(800);
+		delay(1000);
 	}
 
 	// Read modem hardware information.
@@ -126,7 +126,49 @@ void loop() {
 	server.handleClient();
 }
 
-// HTTP server functions ===========================================================
+// HTTP server endpoint functions ==================================================
+
+// Handle send SMS requests.
+static void handleSendSMS() {
+	if (server.method() != HTTP_POST) {
+		log("(-) Invalid request, method is not POST!");
+		server.send(405, "text/plain", "405 Method Not Allowed\r\n");
+		return;
+	}
+
+	if (!requestAuthorized()) {
+		log(lastError);
+		server.send(401, "text/plain", "401 Unauthorized\r\n");
+		return;
+	}
+
+	String reqBody = server.arg("plain"); // Get raw request body
+	JsonDocument json;
+	if (!parseRequestBody(reqBody, json)) {
+		log(lastError);
+		server.send(400, "text/plain", "400 Bad Request\r\n");
+		return;
+	}
+
+	String recipient = json["recipient"];
+	String message = json["message"];
+	log("(i) Sending SMS to '" + recipient + "'...");
+
+	if (!modem.sendSMS(recipient, message)) {
+		log("(-) Failed to send SMS!");
+		server.send(400, "text/plain", "400 Bad Request\r\n");
+	}
+
+	log("(+) SMS sent successfully");
+	server.send(200, "text/plain", "200 OK\r\n");
+}
+
+// Handle not found requests.
+static void handleNotFound() {
+	server.send(404, "text/plain", "404 Not Found\r\n");
+}
+
+// HTTP server utility functions ===================================================
 
 // Returns true if request is authorized.
 static bool requestAuthorized() {
@@ -172,52 +214,12 @@ static bool parseRequestBody(const String& reqBody, JsonDocument& doc) {
 	return true;
 }
 
-// Handle send SMS requests.
-static void handleSendSMS() {
-	if (server.method() != HTTP_POST) {
-		log("(-) Invalid request, method is not POST!");
-		server.send(405, "text/plain", "405 Method Not Allowed\r\n");
-		return;
-	}
-
-	if (!requestAuthorized()) {
-		log(lastError);
-		server.send(401, "text/plain", "401 Unauthorized\r\n");
-		return;
-	}
-
-	String reqBody = server.arg("plain");
-	JsonDocument json;
-	if (!parseRequestBody(reqBody, json)) {
-		log(lastError);
-		server.send(400, "text/plain", "400 Bad Request\r\n");
-		return;
-	}
-
-	String recipient = json["recipient"];
-	String message = json["message"];
-	log("(i) Sending SMS to '" + recipient + "'...");
-
-	if (modem.sendSMS(recipient, message)) {
-		log("(+) SMS sent successfully");
-		server.send(200, "text/plain", "200 OK\r\n");
-	}
-	else {
-		log("(-) Failed to send SMS!");
-		server.send(400, "text/plain", "400 Bad Request\r\n");
-	}
-}
-
-// Handle not found requests.
-static void handleNotFound() {
-	server.send(404, "text/plain", "404 Not Found\r\n");
-}
-
 // Utility functions ===============================================================
 
 // Print fatal error and halt execution.
 static void logFatal(const String& message) {
 	UsbSerial.println(message);
+	delay(50);
 	UsbSerial.println("(-) Fatal error, please restart device!");
 	while (true) {
 		delay(1000);
